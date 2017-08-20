@@ -480,8 +480,8 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
 
     private final static Log.Tag TAG = new Log.Tag("CameraAppUI");
 
-    private final AppController mController;
-    private final boolean mIsCaptureIntent;
+    protected final AppController mController;
+    protected final boolean mIsCaptureIntent;
     private final AnimationManager mAnimationManager;
 
     // Swipe states:
@@ -518,7 +518,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     private final ModeTransitionView mModeTransitionView;
     private final MainActivityLayout mAppRootView;
     private final ModeListView mModeListView;
-    private final FilmstripLayout mFilmstripLayout;
+    protected FilmstripLayout mFilmstripLayout;
     private TextureView mTextureView;
     private FrameLayout mModuleUI;
     private ShutterButton mShutterButton;
@@ -539,8 +539,8 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
     private CaptureAnimationOverlay mCaptureOverlay;
     private PreviewStatusListener mPreviewStatusListener;
     private int mModeCoverState = COVER_HIDDEN;
-    private final FilmstripBottomPanel mFilmstripBottomControls;
-    private final FilmstripContentPanel mFilmstripPanel;
+    private FilmstripBottomPanel mFilmstripBottomControls;
+    private FilmstripContentPanel mFilmstripPanel;
     private Runnable mHideCoverRunnable;
     private final View.OnLayoutChangeListener mPreviewLayoutChangeListener
             = new View.OnLayoutChangeListener() {
@@ -554,14 +554,14 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         }
     };
     private View mModeOptionsToggle;
-    private final RoundedThumbnailView mRoundedThumbnailView;
+    protected final RoundedThumbnailView mRoundedThumbnailView;
     private final CaptureLayoutHelper mCaptureLayoutHelper;
     private final View mAccessibilityAffordances;
     private AccessibilityUtil mAccessibilityUtil;
 
     private boolean mDisableAllUserInteractions;
     /** Whether to prevent capture indicator from being triggered. */
-    private boolean mSuppressCaptureIndicator;
+    protected boolean mSuppressCaptureIndicator;
 
     /** Supported HDR mode (none, hdr, hdr+). */
     private String mHdrSupportMode;
@@ -781,13 +781,11 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         mIsCaptureIntent = isCaptureIntent;
 
         mAppRootView = appRootView;
-        mFilmstripLayout = (FilmstripLayout) appRootView.findViewById(R.id.filmstrip_layout);
+
         mCameraRootView = (FrameLayout) appRootView.findViewById(R.id.camera_app_root);
         mModeTransitionView = (ModeTransitionView)
                 mAppRootView.findViewById(R.id.mode_transition_view);
-        mFilmstripBottomControls = new FilmstripBottomPanel(controller,
-                (ViewGroup) mAppRootView.findViewById(R.id.filmstrip_bottom_panel));
-        mFilmstripPanel = (FilmstripContentPanel) mAppRootView.findViewById(R.id.filmstrip_layout);
+
         mGestureDetector = new GestureDetector(controller.getAndroidContext(),
                 new MyGestureListener());
         Resources res = controller.getAndroidContext().getResources();
@@ -810,12 +808,6 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         }
         mAnimationManager = new AnimationManager();
         mRoundedThumbnailView = (RoundedThumbnailView) appRootView.findViewById(R.id.rounded_thumbnail_view);
-        mRoundedThumbnailView.setCallback(new RoundedThumbnailView.Callback() {
-            @Override
-            public void onHitStateFinished() {
-                mFilmstripLayout.showFilmstrip();
-            }
-        });
 
         mAppRootView.setNonDecorWindowSizeChangedListener(mCaptureLayoutHelper);
         initDisplayListener();
@@ -827,6 +819,9 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
                 openModeList();
             }
         });
+
+        initFilmstrip(appRootView);
+
         View filmstripToggle = mAppRootView.findViewById(
                 R.id.accessibility_filmstrip_toggle_button);
         filmstripToggle.setOnClickListener(new View.OnClickListener() {
@@ -839,6 +834,20 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
         mSuppressCaptureIndicator = false;
     }
 
+    protected void initFilmstrip(ViewGroup appRootView) {
+        mFilmstripLayout = (FilmstripLayout) appRootView.findViewById(R.id.filmstrip_layout);
+
+        mFilmstripBottomControls = new FilmstripBottomPanel(mController,
+                (ViewGroup) mAppRootView.findViewById(R.id.filmstrip_bottom_panel));
+        mFilmstripPanel = (FilmstripContentPanel) mAppRootView.findViewById(R.id.filmstrip_layout);
+
+        mRoundedThumbnailView.setCallback(new RoundedThumbnailView.Callback() {
+            @Override
+            public void onHitStateFinished() {
+                mFilmstripLayout.showFilmstrip();
+            }
+        });
+    }
 
     /**
      * Freeze what is currently shown on screen until the next preview frame comes
@@ -1011,7 +1020,9 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
 
         // Hide action bar first since we are in full screen mode first, and
         // switch the system UI to lights-out mode.
-        mFilmstripPanel.hide();
+        if (mFilmstripPanel != null) {
+            mFilmstripPanel.hide();
+        }
 
         // Show UI that is meant to only be used when spoken feedback is
         // enabled.
@@ -1182,7 +1193,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
      * @return Whether the UI responded to the key event.
      */
     public boolean onBackPressed() {
-        if (mFilmstripLayout.getVisibility() == View.VISIBLE) {
+        if (getFilmstripVisibility() == View.VISIBLE) {
             return mFilmstripLayout.onBackPressed();
         } else {
             return mModeListView.onBackPressed();
@@ -1603,7 +1614,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
      * @param accessibilityString An accessibility String to be announced during the peek animation.
      */
     public void startCaptureIndicatorRevealAnimation(String accessibilityString) {
-        if (mSuppressCaptureIndicator || mFilmstripLayout.getVisibility() == View.VISIBLE) {
+        if (mSuppressCaptureIndicator || getFilmstripVisibility() == View.VISIBLE) {
             return;
         }
         mRoundedThumbnailView.startRevealThumbnailAnimation(accessibilityString);
@@ -1615,7 +1626,7 @@ public class CameraAppUI implements ModeListView.ModeSwitchListener,
      * @param thumbnailBitmap The thumbnail image to be shown.
      */
     public void updateCaptureIndicatorThumbnail(Bitmap thumbnailBitmap, int rotation) {
-        if (mSuppressCaptureIndicator || mFilmstripLayout.getVisibility() == View.VISIBLE) {
+        if (mSuppressCaptureIndicator || getFilmstripVisibility() == View.VISIBLE) {
             return;
         }
         mRoundedThumbnailView.setThumbnail(thumbnailBitmap, rotation);

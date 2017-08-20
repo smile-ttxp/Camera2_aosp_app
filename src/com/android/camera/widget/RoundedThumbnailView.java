@@ -103,7 +103,7 @@ public class RoundedThumbnailView extends View {
 
     // Fields for view layout.
     private float mThumbnailPadding;
-    private RectF mViewRect;
+    protected RectF mViewRect;
 
     // Fields for the thumbnail pop-out effect.
     /** The animators to move the thumbnail. */
@@ -186,7 +186,7 @@ public class RoundedThumbnailView extends View {
      * not drawn until the thumbnail is available. Once the bitmap is available
      * it is swapped into the foreground request.
      */
-    private RevealRequest mPendingRequest;
+    protected RevealRequest mPendingRequest;
 
     /** The currently animating reveal request. */
     private RevealRequest mForegroundRequest;
@@ -283,6 +283,8 @@ public class RoundedThumbnailView extends View {
         mRevealCirclePaint.setAntiAlias(true);
         mRevealCirclePaint.setColor(Color.WHITE);
         mRevealCirclePaint.setStyle(Paint.Style.FILL);
+
+        setDrawingCacheEnabled(true);
     }
 
     @Override
@@ -304,7 +306,15 @@ public class RoundedThumbnailView extends View {
 
         canvas.clipRect(mViewRect);
 
-        // Draw the thumbnail of latest finished reveal request.
+        onDrawBackground(canvas, centerX, centerY);
+        onDrawForeground(canvas, centerX, centerY);
+        onDrawHintState(canvas, centerX, centerY);
+    }
+
+    // Draw the thumbnail of latest finished reveal request.
+    protected void onDrawBackground(Canvas canvas, float centerX, float centerY) {
+        final float viewDiameter = mRippleRingDiameterEnd;
+        final float finalDiameter = mThumbnailShrinkDiameterEnd;
         if (mBackgroundRequest != null) {
             Paint thumbnailPaint = mBackgroundRequest.getThumbnailPaint();
             if (thumbnailPaint != null) {
@@ -319,10 +329,13 @@ public class RoundedThumbnailView extends View {
                         centerY,
                         thumbnailPaint);
                 canvas.restore();
+
             }
         }
+    }
 
-        // Draw animated parts (thumbnail and ripple) if there exists a reveal request.
+    // Draw animated parts (thumbnail and ripple) if there exists a reveal request.
+    protected void onDrawForeground(Canvas canvas, float centerX, float centerY) {
         if (mForegroundRequest != null) {
             // Draw ripple ring first or the ring will cover thumbnail.
             if (mCurrentRippleRingThickness > 0) {
@@ -358,8 +371,12 @@ public class RoundedThumbnailView extends View {
 
             canvas.restore();
         }
+    }
 
-        // Draw hit state circle if necessary.
+    // Draw hit state circle if necessary.
+    protected void onDrawHintState(Canvas canvas, float centerX, float centerY) {
+        final float viewDiameter = mRippleRingDiameterEnd;
+        final float finalDiameter = mThumbnailShrinkDiameterEnd;
         if (mCurrentHitStateCircleOpacity != HIT_STATE_CIRCLE_OPACITY_HIDDEN) {
             canvas.save();
             final float scaleRatio = finalDiameter / viewDiameter;
@@ -602,7 +619,7 @@ public class RoundedThumbnailView extends View {
     /**
      * Encapsulates necessary information for a complete thumbnail reveal animation.
      */
-    private static class RevealRequest {
+    protected static class RevealRequest {
         // The size of the thumbnail.
         private float mViewSize;
 
