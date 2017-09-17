@@ -11,6 +11,7 @@ import com.android.camera.debug.Log;
 
 public class CameraUtil extends com.android.camera.util.CameraUtil {
     public static final String KEY_VIEW_FROM_CAMERA = "view_from_camera";
+    public static final String GOOGLE_PHOTO_PACKAGE_NAME = "com.google.android.apps.photos";
     private CameraUtil(Context context) {
         super(context);
     }
@@ -60,6 +61,7 @@ public class CameraUtil extends com.android.camera.util.CameraUtil {
         intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION);
 
+        intent.setPackage(GOOGLE_PHOTO_PACKAGE_NAME);
         // Add this extra for gallery display camera screen mode
         intent.putExtra(KEY_VIEW_FROM_CAMERA, true);
 
